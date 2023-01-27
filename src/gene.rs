@@ -1,0 +1,5 @@
+//gene
+
+struct Gene {
+    
+}

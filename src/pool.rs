@@ -1,0 +1,5 @@
+//genetic pool
+
+struct Pool {
+    
+}
