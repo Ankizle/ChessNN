@@ -14,7 +14,6 @@ pub fn play_game(white: &player::Player, black: &player::Player, depth: i64) -> 
     let mut turn = 1;
 
     while game.result().is_none() && !game.can_declare_draw() {
-
         let mv = evaluate(&mut game.current_position(), if turn == 1 {
             white
         } else {
@@ -29,38 +28,44 @@ pub fn play_game(white: &player::Player, black: &player::Player, depth: i64) -> 
         turn *= -1;
     }
 
-    return 0;
+    return 
+        match game.result() {
+            None => 0,
+            Some(r) => 
+                if r == chess::GameResult::WhiteCheckmates { return 1; }
+                else if r == chess::GameResult::BlackCheckmates { return 2; }
+                else { return 0; },
+        }
 }
 
-fn evaluate(board: &mut chess::Board, player: &player::Player, isPlayer: bool, depth: i64, p_alpha: f64, p_beta: f64) -> (f64, Option<chess::ChessMove>) {
+pub fn evaluate(board: &mut chess::Board, player: &player::Player, is_player: bool, depth: i64, p_alpha: f64, p_beta: f64) -> (f64, Option<chess::ChessMove>) {
+    let is_player_si: f64 = if is_player { 1.0 } else { -1.0 };
 
     if depth == 0 {
         return (player.eval(board), None);
     }
 
-    let isPlayerSi: f64 = if isPlayer { 1.0 } else { -1.0 };
-
     let move_gen = chess::MoveGen::new_legal(board);
 
-    let mut best_eval = -isPlayerSi * f64::INFINITY;
+    let mut best_eval = -is_player_si * f64::INFINITY;
     let mut best_eval_move: Option<chess::ChessMove> = None;
 
     let mut alpha = p_alpha;
     let mut beta = p_beta;
 
     for m in move_gen {
-        let e = evaluate(board, player, !isPlayer, depth - 1, alpha, beta).0;
+        let e = evaluate(&mut board.make_move_new(m), player, !is_player, depth - 1, alpha, beta).0;
 
-        let cond = if isPlayer { e >= best_eval } else { e <= best_eval };
+        let cond = if is_player { e >= best_eval } else { e <= best_eval };
         
         if cond {
             best_eval = e;
             best_eval_move = Some(m);
         }
 
-        if isPlayer && alpha < best_eval {
+        if is_player && alpha < best_eval {
             alpha = best_eval;
-        } else if !isPlayer && beta > best_eval {
+        } else if !is_player && beta > best_eval {
             beta = best_eval;
         }
 

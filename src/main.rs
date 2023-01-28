@@ -1,5 +1,3 @@
-use chess;
-
 mod pool;
 mod game;
 
@@ -7,25 +5,50 @@ const POP_SIZE: usize = 10;
 const DEPTH: i64 = 5;
 
 fn main() {
-
-    let mut players: Vec<pool::player::Player> = Vec::new();
-    let mut pool = pool::Pool::new();
-
-    for i in 0..POP_SIZE {
-        players.push(pool::player::Player::new(&pool));   
-    }
+    let mut pool = pool::Pool::new(POP_SIZE);
 
     let mut ii: i64 = 0;
 
-    for i in &players {
-        for j in &players {
+    let mut wins = Vec::<usize>::new();
+    let mut loses = Vec::<usize>::new();
+    let mut draws = Vec::<usize>::new();
+
+    for (k, i) in pool.players.iter().enumerate() {
+        for (l, j) in pool.players.iter().enumerate() {
             if i as *const _ == j as *const _ {
                 continue;
             }
-            game::play_game(i, j, DEPTH);
+            
+            let res = game::play_game(i, j, DEPTH);
+
+            if res == 0 {
+                //draw
+                draws.push(k);
+                draws.push(l);
+            } else if res == 1 {
+                //white wins
+                wins.push(k);
+                loses.push(l);
+            } else if res == 2 {
+                //black wins
+                loses.push(k);
+                wins.push(l);
+            }
 
             println!("{}", ii);
             ii += 1;
         }
     }
+
+    for i in wins {
+        pool.players[i].win();
+    }
+    for i in loses {
+        pool.players[i].lose();
+    }
+    for i in draws {
+        pool.players[i].draw();
+    }
+
+
 }
