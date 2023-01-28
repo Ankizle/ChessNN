@@ -1,5 +1,0 @@
-//player
-
-struct Player {
-
-}
