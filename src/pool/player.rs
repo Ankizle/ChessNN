@@ -1,12 +1,13 @@
 //player
 
 use crate::pool::gene;
+use std::collections::HashMap;
 use chess;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Player {
-    network: Vec<Vec<(i64, f64) /* output node, weight */> /* every index represents the input node */>,
-    genes: Vec<gene::Gene>,
+    pub network: Vec<Vec<(i64, f64) /* output node, weight */> /* every index represents the input node */>,
+    pub genes: HashMap<gene::Gene, f64> /* gene and weight */,
     pub wins: i64,
     pub draws: i64,
     pub loses: i64,
@@ -17,7 +18,7 @@ impl Player {
     pub fn new() -> Player {
         return Player{
             network: Vec::new(),
-            genes: Vec::new(),
+            genes: HashMap::new(),
             wins: 0,
             draws: 0,
             loses: 0,
@@ -25,7 +26,7 @@ impl Player {
     }
 
     pub fn add_gene(&mut self, gene: gene::Gene, weight: f64) {
-        self.genes.push(gene);
+        self.genes.insert(gene, weight);
 
         while gene.in_node as usize >= self.network.len() {
             self.network.push(Vec::new());
@@ -55,12 +56,12 @@ impl Player {
 
     pub fn eval_gene(&self, i: i64, val: &f64) -> f64 {
 
-        if self.network.len() < i as usize {
-            return 0.0;
-        }
-
         if i == -1 {
             return *val;
+        }
+
+        if self.network.len() <= i as usize {
+            return 0.0;
         }
 
         let conns = &self.network[i as usize];
@@ -81,7 +82,7 @@ impl Player {
         let mut out = 0.0;
 
         for (k, v) in inputs.iter().enumerate() {
-            out+=self.eval_gene(k as i64, v); 
+            out += self.eval_gene(k as i64, v); 
         }
 
         return out;

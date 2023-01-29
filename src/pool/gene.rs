@@ -2,7 +2,7 @@
 
 static mut INNOVATION_COUNTER: i64 = 0;
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Eq, Hash, PartialEq, Copy, Clone)]
 pub struct Gene {
     pub in_node: i64,
     pub out_node: i64, //-1 for final output

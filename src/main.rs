@@ -1,13 +1,12 @@
 mod pool;
 mod game;
 
-const POP_SIZE: usize = 10;
-const DEPTH: i64 = 5;
+const POP_SIZE: usize = 4;
+const DEPTH: i64 = 2;
 
-fn main() {
-    let mut pool = pool::Pool::new(POP_SIZE);
+fn run(pool: &mut pool::Pool, generation: u64) {
 
-    let mut ii: i64 = 0;
+    println!("Generation {}", generation);
 
     let mut wins = Vec::<usize>::new();
     let mut loses = Vec::<usize>::new();
@@ -34,9 +33,6 @@ fn main() {
                 loses.push(k);
                 wins.push(l);
             }
-
-            println!("{}", ii);
-            ii += 1;
         }
     }
 
@@ -50,5 +46,11 @@ fn main() {
         pool.players[i].draw();
     }
 
+    pool.next_generation();
+    run(pool, generation + 1);
+}
 
+fn main() {
+    let mut pool = pool::Pool::new(POP_SIZE);
+    run(&mut pool, 0);
 }

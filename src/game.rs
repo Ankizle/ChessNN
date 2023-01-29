@@ -21,7 +21,7 @@ pub fn play_game(white: &player::Player, black: &player::Player, depth: i64) -> 
         }, true, depth, -f64::INFINITY, f64::INFINITY).1;
 
         match mv {
-            None => panic!["Game ran into 0 moves without stalemate"],
+            None => panic!("Game ran into 0 moves without stalemate"),
             Some(i) => game.make_move(i),
         };
 
@@ -40,6 +40,14 @@ pub fn play_game(white: &player::Player, black: &player::Player, depth: i64) -> 
 
 pub fn evaluate(board: &mut chess::Board, player: &player::Player, is_player: bool, depth: i64, p_alpha: f64, p_beta: f64) -> (f64, Option<chess::ChessMove>) {
     let is_player_si: f64 = if is_player { 1.0 } else { -1.0 };
+
+    if board.status() == chess::BoardStatus::Checkmate {
+        return (-is_player_si * f64::INFINITY, None);
+    }
+
+    if board.status() == chess::BoardStatus::Stalemate {
+        return (0.0, None);
+    }
 
     if depth == 0 {
         return (player.eval(board), None);
