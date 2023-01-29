@@ -4,6 +4,8 @@ use rand;
 use rand::distributions::Distribution;
 use rand::Rng;
 use std::collections::HashSet;
+use std::collections::HashMap;
+use rand::prelude::IteratorRandom;
 pub mod gene;
 pub mod player;
 
@@ -13,10 +15,12 @@ const BOARD_SIZE: i64 = 8 * 8;
 pub struct Pool {
     pub genes: Vec<gene::Gene>,
     pub players: Vec<player::Player>,
+    mutation_chance: f32,
+    generation_number: u32,
 }
 
 impl Pool {
-    pub fn new(pop_size: usize) -> Pool {
+    pub fn new(pop_size: usize, mutation_chance: f32) -> Pool {
 
         //input to output connections
 
@@ -44,6 +48,8 @@ impl Pool {
         return Pool{
             genes: initial,
             players: players,
+            mutation_chance: mutation_chance,
+            generation_number: 0,
         };
     }
 
@@ -67,6 +73,66 @@ impl Pool {
         return fit_players;
     }
 
+    fn mutate(&self, mut genome: HashMap<gene::Gene, f64>) -> HashMap<gene::Gene, f64> {
+        let mut rng = rand::thread_rng();
+        let dist = rand::distributions::WeightedIndex::new(&[self.mutation_chance, 1.0 - self.mutation_chance]).unwrap();
+        
+        if dist.sample(&mut rng) == 1 {
+            return genome;
+        }
+
+        let picked = rng.gen_range(0..3);
+
+        //3 cases
+
+        if picked == 0 {
+
+            //create a new gene entirely
+
+            let mut new_gene: gene::Gene;
+
+            loop {
+
+                let input = rng.gen_range(0..(self.genes.len() + 1)) as i64;
+                let mut output = rng.gen_range(63..(self.genes.len() + 2)) as i64;
+
+                if output == 63 { //output can also be the final output node
+                    output = -1
+                }
+
+                new_gene = gene::Gene::new(input, output);
+
+                if !genome.contains_key(&new_gene) {
+                    break;
+                }
+            }
+
+            let sampler = rand::distributions::Uniform::<f64>::new(-1.0, 1.0);
+
+            genome.insert(new_gene, sampler.sample(&mut rng));
+        } else if picked == 1 {
+
+            //modify weight of an existing gene
+
+            let chosen = genome.keys().choose(&mut rng).unwrap();
+            let sampler = rand::distributions::Uniform::<f64>::new(-2.0, 2.0);
+
+            genome.insert(*chosen, sampler.sample(&mut rng));
+
+        } else {
+
+            //remove gene
+
+            let chosen = genome.keys().choose(&mut rng).unwrap();
+            let mut n_genome = genome.clone();
+
+            n_genome.remove(chosen);
+            return n_genome;
+        }
+
+        return genome;
+    }
+
     pub fn cross(&self, p1: &player::Player, p2: &player::Player) -> player::Player {
         let mut crossed = player::Player::new();
 
@@ -85,6 +151,8 @@ impl Pool {
             disjoint.push((&p2, *i.0));
         }
 
+        let mut genome = HashMap::<gene::Gene, f64>::new();
+
         let mut rng = rand::thread_rng();
 
         for i in shared {
@@ -98,19 +166,19 @@ impl Pool {
 
             //very unlikely
             if lo == hi {
-                crossed.add_gene(i, lo);
+                genome.insert(i, lo);
                 continue;
             }
 
             let between = rand::distributions::Uniform::<f64>::new(lo, hi);
-            crossed.add_gene(i, between.sample(&mut rng));
+            genome.insert(i, between.sample(&mut rng));
         }
 
         let hi_fit = Pool::fitness(p1).max(Pool::fitness(p2));
 
         for i in disjoint {
             if hi_fit <= Pool::fitness(i.0) {
-                crossed.add_gene(i.1, i.0.genes[&i.1]);
+                genome.insert(i.1, i.0.genes[&i.1]);
                 continue;
             }
 
@@ -118,8 +186,14 @@ impl Pool {
             //half chance of getting their disjoint gene
 
             if rng.gen_range(0..1) == 0 {
-                crossed.add_gene(i.1, i.0.genes[&i.1]);
+                genome.insert(i.1, i.0.genes[&i.1]);
             }
+        }
+
+        let mutated = self.mutate(genome);
+
+        for (k, v) in mutated {
+            crossed.add_gene(k, v);
         }
 
         return crossed;
@@ -137,5 +211,6 @@ impl Pool {
         }
 
         self.players = bred;
+        self.generation_number += 1;
     }
 }

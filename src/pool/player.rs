@@ -1,15 +1,27 @@
 //player
 
+use serde::{Serialize, Deserialize};
+use serde_json;
 use crate::pool::gene;
 use std::collections::HashMap;
+use std::io::Write;
+use std::io::Read;
+use std::fs::File;
 use chess;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Player {
     pub network: Vec<Vec<(i64, f64) /* output node, weight */> /* every index represents the input node */>,
-    pub genes: HashMap<gene::Gene, f64> /* gene and weight */,
+
+    #[serde(skip)]
+    pub genes: HashMap<gene::Gene, f64>, /* gene and weight */
+    #[serde(skip)]
+    pub transposition_tbl: HashMap<u128, (f64 /* eval */, Option<chess::ChessMove> /* best move */, i64 /* depth */)>, //transposition evaluations based on hashes
+    #[serde(skip)]
     pub wins: i64,
+    #[serde(skip)]
     pub draws: i64,
+    #[serde(skip)]
     pub loses: i64,
 }
 
@@ -19,10 +31,19 @@ impl Player {
         return Player{
             network: Vec::new(),
             genes: HashMap::new(),
+            transposition_tbl: HashMap::new(),
             wins: 0,
             draws: 0,
             loses: 0,
         };
+    }
+
+    pub fn load(filename: &String) -> std::io::Result<Player> {
+        let mut data_file = File::open(filename)?;
+        let mut data = String::new();
+        data_file.read_to_string(&mut data)?;
+        let d: Player = serde_json::from_str(&data).unwrap();
+        return Ok(d);
     }
 
     pub fn add_gene(&mut self, gene: gene::Gene, weight: f64) {
@@ -98,5 +119,12 @@ impl Player {
 
     pub fn lose(&mut self) {
         self.loses += 1;
+    }
+
+    pub fn save(&self, filename: &String) -> std::io::Result<()> {
+        let serialized = serde_json::to_string(&self).unwrap();
+        let mut output = File::create(filename)?;
+        output.write_all(serialized.as_bytes())?;
+        Ok(())
     }
 }

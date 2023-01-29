@@ -1,23 +1,18 @@
 //gene
 
-static mut INNOVATION_COUNTER: i64 = 0;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Eq, Hash, PartialEq, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, Eq, Hash, PartialEq, Copy, Clone)]
 pub struct Gene {
     pub in_node: i64,
     pub out_node: i64, //-1 for final output
-    innovation_number: i64,
 }
 
 impl Gene {
     pub fn new(in_node: i64, out_node: i64) -> Gene {
-        unsafe {
-            INNOVATION_COUNTER += 1;
-            return Gene{
-                in_node: in_node,
-                out_node: out_node,
-                innovation_number: INNOVATION_COUNTER,
-            };
-        }
+        return Gene{
+            in_node: in_node,
+            out_node: out_node,
+        };
     }
 }
